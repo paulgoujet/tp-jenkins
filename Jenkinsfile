@@ -1,22 +1,28 @@
 pipeline {
-    agent { docker { image 'mirror.gcr.io/library/python:3.15.2-alpine3.24' } }
+    agent any
     stages {
-        stage('Build') {
+        stage('No-op') {
             steps {
-                sh 'mkdir -p build/libs && tar -czf build/libs/app.tar.gz app.py'
-            }
-        }
-        stage('Test') {
-            steps {
-                sh 'pip install -q pytest'
-                sh 'python -m pytest --junitxml=build/reports/tests.xml || true'
+                sh 'ls'
             }
         }
     }
     post {
         always {
-            archiveArtifacts artifacts: 'build/libs/**/*.tar.gz', fingerprint: true
-            junit 'build/reports/**/*.xml'
+            echo 'One way or another, I have finished'
+            deleteDir() /* clean up our workspace */
+        }
+        success {
+            echo 'I succeeded!'
+        }
+        unstable {
+            echo 'I am unstable :/'
+        }
+        failure {
+            echo 'I failed :('
+        }
+        changed {
+            echo 'Things were different before...'
         }
     }
 }
