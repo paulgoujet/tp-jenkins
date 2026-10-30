@@ -1,28 +1,38 @@
 pipeline {
-    agent any
+    agent { docker { image 'mirror.gcr.io/library/python:3.15.2-alpine3.24' } }
+    options {
+        skipStagesAfterUnstable()
+    }
     stages {
-        stage('No-op') {
+        stage('Build') {
             steps {
-                sh 'ls'
+                echo 'Building'
+                sh 'python -m py_compile app.py'
             }
         }
-    }
-    post {
-        always {
-            echo 'One way or another, I have finished'
-            deleteDir() /* clean up our workspace */
+        stage('Test') {
+            steps {
+                echo 'Testing'
+                sh 'pip install -q pytest'
+                sh 'python -m pytest --junitxml=test-results.xml || true'
+                junit 'test-results.xml'
+            }
         }
-        success {
-            echo 'I succeeded!'
+        stage('Deploy - Staging') {
+            steps {
+                echo 'Deploying to staging'
+                sh 'echo "Smoke tests on staging: OK"'
+            }
         }
-        unstable {
-            echo 'I am unstable :/'
+        stage('Sanity check') {
+            steps {
+                input "Does the staging environment look ok?"
+            }
         }
-        failure {
-            echo 'I failed :('
-        }
-        changed {
-            echo 'Things were different before...'
+        stage('Deploy - Production') {
+            steps {
+                echo 'Deploying to production'
+            }
         }
     }
 }
